@@ -8,8 +8,8 @@ const { imageUpload } = require("../config/upload")
 
 // authentication
 router.post('/users', apiControllers.register)
-router.get('/login', apiControllers.checkLogin)
 router.post('/login', apiControllers.login)
+router.get('/login', apiControllers.checkLogin)
 router.delete('/login', apiControllers.logout)
 
 // posts

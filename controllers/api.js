@@ -1,6 +1,7 @@
 // MongoDB URI
 const uri = 'mongodb://localhost:27017';
 const dbName = 'socialmedia';
+
 const { MongoClient, ObjectId } = require('mongodb');
 const colors = require("colors")
 const bcrypt = require("bcryptjs")
@@ -35,47 +36,44 @@ exports.testApi = (req, res) => {
 // route -> /users
 // method -> POST
 exports.register = async (req, res) => {
-    const { name, phone, password } = req.body;
-    if (!name || !phone || !password) {
-        return res.status(400).send('name and phone and password are required.');
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).send('username and password are required.');
     }
 
     try {
         const usersCollection = db.collection('users');
-        const existingUser = await usersCollection.findOne({ phone });
+        const existingUser = await usersCollection.findOne({ username });
         if (existingUser) {
-            return res.status(400).send('phone is already taken.');
+            return res.status(400).send('username is already taken.');
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        await usersCollection.insertOne({ name, phone, password: hashedPassword });
+        await usersCollection.insertOne({ username, password: hashedPassword });
         res.redirect('/');
+        // res.send("user register")
     } catch (error) {
         console.error('Error during registration:', error);
         res.status(500).send('Internal Server Error');
     }
 }
 
-// check login status
-// route -> /login
-// method -> GET
-exports.checkLogin = (req, res) => {
-    res.send("check login")
-}
+
 
 
 // login user
 // route -> /login
 // method -> POST
 exports.login = async (req, res) => {
-    const { phone, password } = req.body;
-    if (!phone || !password) {
-        return res.status(400).send('phone and password are required.');
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).send('username and password are required.');
     }
 
     try {
         const usersCollection = db.collection('users');
-        const user = await usersCollection.findOne({ phone });
+        const user = await usersCollection.findOne({ username });
         if (!user) {
             return res.status(401).send('Invalid credentials.');
         }
@@ -86,12 +84,40 @@ exports.login = async (req, res) => {
         }
 
         req.session.userId = user._id;
-        req.session.phone = user.phone;
+        req.session.username = user.username;
+
+        console.log(req.session);
+        
         res.redirect('/');
+        // res.send("user login")
+
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).send('Internal Server Error');
     }
+}
+
+
+// check login status
+// route -> /login
+// method -> GET
+exports.checkLogin = (req, res) => {
+    console.log(req.session);
+    
+    // Check if session exists and contains user information
+    if (req.session && req.session.userId) {
+        return res.status(200).json({
+            success: true,
+            message: 'User is logged in.',
+            user: req.session.userId // Provide user data from session
+        });
+    }
+
+    // If no user session exists, return unauthorized response
+    return res.status(401).json({
+        success: false,
+        message: 'User is not logged in.'
+    });
 }
 
 // logout user
@@ -104,6 +130,7 @@ exports.logout = (req, res) => {
             return res.status(500).send('Internal Server Error');
         }
         res.redirect('/');
+        // res.send("user logout")
     });
 }
 
